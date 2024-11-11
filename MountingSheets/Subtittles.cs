@@ -6,54 +6,71 @@ using System.Text;
 using System.Threading.Tasks;
 using Vosk;
 
-namespace MountingSheets;
-
-public class Subtittles
+namespace MountingSheets
 {
-    public static Model model = new(@"..\..\..\Vosk\small");
-    public static SpkModel spkModel = new(@"..\..\..\Vosk\spk");
-    public static void ExtractAudio(Meta meta)
+    internal class Subtittles
     {
-        if (!File.Exists(meta.AudioPath))
-            return;
-        // Создаем процесс для запуска FFmpeg
-        var process = new Process
+        public static void ExtractAudio(string inputVideoPath, string outputAudioPath)
         {
-            StartInfo = new ProcessStartInfo
+            // Создаем процесс для запуска FFmpeg
+            var process = new Process
             {
-                FileName = @"..\..\..\FFMpeg\bin\ffmpeg.exe", // или полный путь к ffmpeg, если он не добавлен в PATH
-                Arguments = $"-i \"{meta.VideoPath}\" -ar 16000 -ac 1 \"{meta.AudioPath}\"", // Установка частоты 16000 Гц и моно-канала
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-        process.Start();
-        process.WaitForExit();
-    }
-
-    public static void DemoSpeaker(Meta meta)
-    {
-
-        using StreamWriter writer = new(meta.SubtitlesPath);
-        VoskRecognizer rec = new(model, 16000.0f, spkModel);
-
-        using (Stream source = File.OpenRead(meta.AudioPath))
-        {
-            byte[] buffer = new byte[1280];
-            int bytesRead;
-            int i = 0;
-            while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                if (rec.AcceptWaveform(buffer, bytesRead))
+                StartInfo = new ProcessStartInfo
                 {
-                    writer.WriteLine(rec.Result());
+                    FileName = @"D:\Subtittles\ffmpeg-7.1-essentials_build\bin\ffmpeg.exe", // или полный путь к ffmpeg, если он не добавлен в PATH
+                    Arguments = $"-i \"{inputVideoPath}\" -ar 16000 -ac 1 \"{outputAudioPath}\"", // Установка частоты 16000 Гц и моно-канала
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
                 }
-                Console.WriteLine($"{i / 25 / 60 : d2}:{i / 25 % 60 : d2}:{i % 25 : d2}");
-                i++;
-            }
+            };
+            process.Start();
+            process.WaitForExit();
         }
-        Console.WriteLine(rec.FinalResult());
+
+        public static void DemoSpeaker(Model model, string audioFilePath)
+        {
+            string txtPath = @"D:\Subtittles\text.txt";
+            using StreamWriter writer = new StreamWriter(txtPath);
+            // Output speakers
+            SpkModel spkModel = new SpkModel(@"D:\Subtittles\vosk-model-spk-0.4");
+            VoskRecognizer rec = new VoskRecognizer(model, 16000.0f);
+            rec.SetSpkModel(spkModel);
+
+            using (Stream source = File.OpenRead(audioFilePath))
+            {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    if (rec.AcceptWaveform(buffer, bytesRead))
+                    {
+                        writer.WriteLine(rec.Result());
+                    }
+                    else
+                    {
+                        //Console.WriteLine(rec.PartialResult());
+                    }
+                }
+            }
+            Console.WriteLine(rec.FinalResult());
+        }
+
+        /*public static void Main()
+        {
+            // You can set to -1 to disable logging messages
+            Vosk.Vosk.SetLogLevel(0);
+            string videoFilePath = @"D:\Video\dv2.mp4"; //путь к исходнику
+            string audioFilePath = @"D:\Audio\output.wav"; //путь к папке куда сохраняем
+
+            // Извлечение аудио из видео
+            //ExtractAudio(videoFilePath, audioFilePath);
+            Console.WriteLine("Пошел я нахуй");
+            Model model = new Model(@"D:\Subtittles\vosk-model-small-ru-0.22");
+            DemoBytes(model);
+            DemoFloats(model);
+            DemoSpeaker(model, audioFilePath);
+        }*/
     }
 }
