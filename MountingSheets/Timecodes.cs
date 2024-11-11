@@ -20,6 +20,14 @@ internal class SceneChangeDetection
         public double? CompareByHistogram { get; set; } = MeasureComparison("Гистограммное сравнение", () => CompareByHistogram(previousFrame, currentFrame));
         public double? CompareByFeatureMatching { get; set; } //= MeasureComparison("Ключевые точки и дескрипторы", () => CompareByFeatureMatching(previousFrame, currentFrame));
     }
+    static void Main()
+    {
+        Stopwatch sw = Stopwatch.StartNew();
+        Hren(@"D:\Video\dv2.mp4");
+        sw.Stop();
+        Console.WriteLine($"Выполнение завершено, время: {sw.ElapsedMilliseconds} мс");
+    }
+
     public static void Hren(string videoPath)
     {
         using VideoCapture videoCapture = new(videoPath);
